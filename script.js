@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const setLanguage = (lang, saveToDb = true) => {
         if (!LANG_PACK[lang]) lang = 'en'; // Fallback to English
         appState.currentLanguage = lang;
-        localStorage.setItem('fightingApeLanguage', lang);
+        localStorage.setItem('studioPulseLanguage', lang);
         updateUIText();
         // --- CHANGE START: Add a guard to prevent unnecessary UI updates ---
         // Only update the password strength UI if the registration form is visible
@@ -2206,18 +2206,24 @@ ${_('whatsapp_closing')}
 
         let memberActionHTML;
         if (isBookedByCurrentUser) {
+            // --- START OF CHANGE: Add time check logic here ---
+            const now = new Date();
+            const classStartDateTime = new Date(`${cls.date}T${cls.time}`);
+            const hasClassStarted = now > classStartDateTime;
+            
             if (isAttendedByCurrentUser) {
-                // Translate "COMPLETED" status
                 memberActionHTML = `<span class="bg-white/90 text-green-600 font-bold text-xs px-2 py-1 rounded-full">${_('status_completed')}</span>`;
+            } else if (hasClassStarted) {
+                // If the class has started and they haven't attended, show "No Show"
+                memberActionHTML = `<span class="bg-white/90 text-slate-500 font-bold text-xs px-3 py-1 rounded-full">${_('status_no_show')}</span>`;
             } else {
-                // Translate "BOOKED" and "CANCEL?" statuses for the toggle button
+                // Otherwise, show the interactive cancel button
                 memberActionHTML = `<button class="cancel-booking-btn-toggle bg-white/90 text-indigo-600 font-bold text-xs px-3 py-1 rounded-full transition-all duration-200 hover:bg-red-600 hover:text-white" data-booked-text="${_('status_booked')}" data-cancel-text="${_('status_cancel_prompt')}">${_('status_booked')}</button>`;
             }
+            // --- END OF CHANGE ---
         } else if (isMonthlyMember && isRestrictedForMonthly) {
-            // Translate "NOT AVAILABLE" status
             memberActionHTML = `<span class="bg-white text-slate-600 font-bold text-xs px-3 py-1 rounded-full">${_('status_not_available')}</span>`;
         } else if (isFull) {
-            // Translate "FULL" status
             memberActionHTML = `<span class="bg-white text-red-600 font-bold text-xs px-3 py-1 rounded-full">${_('status_full')}</span>`;
         } else {
             memberActionHTML = `<span class="font-bold text-white">${creditText}</span>`;
@@ -2306,15 +2312,11 @@ ${_('whatsapp_closing')}
                     timeChangeDebounce = setTimeout(() => {
                         saveSchedulePosition();
                         
-                        // --- THIS IS THE FIX ---
-                        // Create a function that knows how to revert the UI for THIS specific element
                         const revertUICallback = () => {
                             timeSlotEl.textContent = getTimeRange(cls.time, cls.duration);
                         };
 
-                        // Pass the original time and the revert callback to the gatekeeper
                         handleClsUpdateRequest(cls, { time: localClsTime }, revertUICallback);
-                        // --- END OF FIX ---
                     }, 1500);
                 });
             }
@@ -2328,15 +2330,11 @@ ${_('whatsapp_closing')}
                     timeChangeDebounce = setTimeout(() => {
                         saveSchedulePosition();
 
-                        // --- THIS IS THE FIX ---
-                        // Create a revert callback for the mobile time input as well
                         const revertUICallback = () => {
-                            // For the mobile input, we just need to reset its value
                             timeInput.value = cls.time;
                         };
 
                         handleClsUpdateRequest(cls, { time: timeInput.value }, revertUICallback);
-                        // --- END OF FIX ---
                     }, 1500);
                 });
             }
@@ -3196,6 +3194,13 @@ ${_('whatsapp_closing')}
                                 const isHighlighted = cls.id === appState.highlightBookingId;
                                 const bookingDetails = cls.bookedBy[member.id];
                                 const creditsUsed = bookingDetails.creditsPaid;
+
+                                // --- START OF CHANGE: Check if the class has started ---
+                                const now = new Date();
+                                const classStartDateTime = new Date(`${cls.date}T${cls.time}`); // Creates date in the browser's local timezone
+                                const hasClassStarted = now > classStartDateTime;
+                                // --- END OF CHANGE ---
+
                                 return `<div class="${isHighlighted ? 'booking-highlight' : 'bg-slate-100'} p-4 rounded-lg flex justify-between items-center" data-cls-id="${cls.id}">
                                     <div>
                                         <p class="font-bold text-slate-800">${getSportTypeName(sportType)}</p>
@@ -3203,10 +3208,17 @@ ${_('whatsapp_closing')}
                                         <p class="text-xs text-slate-600">${_('label_credits_used')} ${creditsUsed}</p>
                                         <p class="text-xs text-slate-500">${formatBookingAuditText(bookingDetails)}</p>
                                     </div>
-                                    ${isAttended 
-                                        ? `<span class="text-sm font-semibold text-green-600">${_('status_completed')}</span>`
-                                        : `<button class="cancel-booking-btn-dash text-sm font-semibold text-red-600 hover:text-red-800" data-cls-id="${cls.id}">${_('btn_cancel')}</button>`
-                                    }
+                                    ${(() => {
+                                        // --- START OF CHANGE: Conditionally render Cancel button or a status message ---
+                                        if (isAttended) {
+                                            return `<span class="text-sm font-semibold text-green-600">${_('status_completed')}</span>`;
+                                        }
+                                        if (hasClassStarted) {
+                                            return `<span class="text-sm font-semibold text-slate-500">${_('status_no_show')}</span>`;
+                                        }
+                                        return `<button class="cancel-booking-btn-dash text-sm font-semibold text-red-600 hover:text-red-800" data-cls-id="${cls.id}">${_('btn_cancel')}</button>`;
+                                        // --- END OF CHANGE ---
+                                    })()}
                                 </div>`
                             }).join('')}
                         </div>
@@ -3919,7 +3931,7 @@ ${_('whatsapp_closing')}
         updates[`/users/${memberId}/originalName`] = member.name;
 
         // Archive Email
-        updates[`/users/${memberId}/email`] = `deleted.${memberId}@fightingApe.app`;
+        updates[`/users/${memberId}/email`] = `deleted.${memberId}@studiopulse.app`;
         updates[`/users/${memberId}/originalEmail`] = member.email;
 
         // Archive Phone
@@ -6990,7 +7002,7 @@ ${_('whatsapp_closing')}
 
                     // --- START: NEW LANGUAGE LOGIC ---
                     // Load language from DB, fallback to browser storage, then to default
-                    const userLang = userData.language || localStorage.getItem('fightingApeLanguage') || 'en';
+                    const userLang = userData.language || localStorage.getItem('studioPulseLanguage') || 'en';
                     setLanguage(userLang, false); // Set language from DB, don't re-save immediately
                     // --- END: NEW LANGUAGE LOGIC ---
 
@@ -7194,7 +7206,7 @@ ${_('whatsapp_closing')}
         auth.onAuthStateChanged(handleAuthStateChange);
 
         // --- START: NEW INITIAL LANGUAGE SET ---
-        const savedLang = localStorage.getItem('fightingApeLanguage') || 'en';
+        const savedLang = localStorage.getItem('studioPulseLanguage') || 'en';
         setLanguage(savedLang, false); // Don't save to DB on initial load
         // --- END: NEW INITIAL LANGUAGE SET ---
     };
