@@ -45,8 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
             classesPeriod: null,
             classesSportTypeId: 'all',
             classesTutorId: 'all',
-            memberSportType: 'all', 
-            memberTutor: 'all' 
+            memberSportType: 'all',
+            memberTutor: 'all',
+            statsPeriod: -7
         },
         ownerPastDaysVisible: 0,
         scheduleScrollDate: null,
@@ -146,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const setLanguage = (lang, saveToDb = true) => {
         if (!LANG_PACK[lang]) lang = 'en'; // Fallback to English
         appState.currentLanguage = lang;
-        localStorage.setItem('studioPulseLanguage', lang);
+        localStorage.setItem('fightingApeLanguage', lang);
         updateUIText();
         // --- CHANGE START: Add a guard to prevent unnecessary UI updates ---
         // Only update the password strength UI if the registration form is visible
@@ -411,31 +412,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- END: Add this new function here ---
 
     function calculateClsRevenueAndPayout(cls, allUsers, allTutors, allClasses) {
-        // --- START OF CHANGE: Logic is now based on ATTENDED members ---
-        const attendedMemberIds = cls.attendedBy ? Object.keys(cls.attendedBy) : [];
-        let tutorPayout = 0;
-
-        const attendedMembersOnThisCls = attendedMemberIds.map(id => allUsers.find(u => u.id === id)).filter(Boolean);
-        const allBookingsByTheseMembers = [];
-        if (attendedMembersOnThisCls.length > 0) {
-            const memberIdSet = new Set(attendedMembersOnThisCls.map(m => m.id));
-            allClasses.forEach(c => {
-                if (c.bookedBy) {
-                    for (const memberId of Object.keys(c.bookedBy)) {
-                        if (memberIdSet.has(memberId)) {
-                            const member = allUsers.find(u => u.id === memberId);
-                            if (member) allBookingsByTheseMembers.push({ member, cls: c });
-                        }
-                    }
-                }
-            });
-        }
+        const bookedMemberIds = cls.bookedBy ? Object.keys(cls.bookedBy) : [];
+        const bookingsForThisCls = bookedMemberIds.map(id => {
+            const member = allUsers.find(u => u.id === id);
+            return member ? { member, cls } : null;
+        }).filter(Boolean);
         
-        // The revenue calculation now correctly filters by attendance inside the function.
-        const { revenueByClsId } = calculateRevenueForBookings(allBookingsByTheseMembers);
+        // --- START OF CHANGE: Determine if the class is in the future or past ---
+        const now = new Date();
+        const classStartDateTime = new Date(`${cls.date}T${cls.time}`);
+        const revenueMode = classStartDateTime > now ? 'projected' : 'actual';
+        
+        // Call the main revenue function with the correct mode
+        const { revenueByClsId } = calculateRevenueForBookings(bookingsForThisCls, revenueMode);
+        // --- END OF CHANGE ---
+        
         const grossRevenue = revenueByClsId.get(cls.id) || 0;
 
-        // Payout calculation is also updated.
+        let tutorPayout = 0;
+        
         if (cls.payoutDetails && typeof cls.payoutDetails.salaryValue !== 'undefined') {
             const { salaryType, salaryValue } = cls.payoutDetails;
             if (salaryType === 'perCls') {
@@ -443,11 +438,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (salaryType === 'percentage') {
                 tutorPayout = grossRevenue * (salaryValue / 100);
             } else if (salaryType === 'perHeadcount') {
-                // This now correctly uses the count of *attended* members.
-                tutorPayout = attendedMemberIds.length * salaryValue;
+                const headcount = bookedMemberIds.length;
+                tutorPayout = headcount * salaryValue;
             }
         }
-        // --- END OF CHANGE ---
         
         const netRevenue = grossRevenue - tutorPayout;
         return { grossRevenue, tutorPayout, netRevenue };
@@ -3931,7 +3925,7 @@ ${_('whatsapp_closing')}
         updates[`/users/${memberId}/originalName`] = member.name;
 
         // Archive Email
-        updates[`/users/${memberId}/email`] = `deleted.${memberId}@studiopulse.app`;
+        updates[`/users/${memberId}/email`] = `deleted.${memberId}@fightingApe.app`;
         updates[`/users/${memberId}/originalEmail`] = member.email;
 
         // Archive Phone
@@ -4859,6 +4853,10 @@ ${_('whatsapp_closing')}
 
         let totalGrossRevenue = 0;
         const revenueByClsId = new Map();
+        
+        // --- START OF CHANGE: Get the current time once outside the loop for efficiency ---
+        const now = new Date();
+        // --- END OF CHANGE ---
 
         for (const memberId in bookingsByMember) {
             const member = appState.users.find(u => u.id === memberId);
@@ -4867,10 +4865,13 @@ ${_('whatsapp_closing')}
             const memberClasses = bookingsByMember[memberId].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
 
             for (const cls of memberClasses) {
-                // --- START OF CHANGE: This is the core logic update ---
-                const isAttended = cls.attendedBy && cls.attendedBy[memberId];
-                // Calculate revenue if we are in 'projected' mode OR if we are in 'actual' mode and the member attended.
-                const shouldCalculate = (revenueMode === 'projected') || (revenueMode === 'actual' && isAttended);
+                // --- START OF CHANGE: The core logic update is here ---
+                const classStartDateTime = new Date(`${cls.date}T${cls.time}`);
+                const hasClassStarted = now > classStartDateTime;
+                
+                // Calculate revenue if we are in 'projected' mode OR if we are in 'actual' mode and the class has started.
+                const shouldCalculate = (revenueMode === 'projected') || (revenueMode === 'actual' && hasClassStarted);
+                // --- END OF CHANGE ---
 
                 if (shouldCalculate) {
                     let revenue = 0;
@@ -4881,9 +4882,6 @@ ${_('whatsapp_closing')}
                             : (member.monthlyCreditValue || 0);
                         revenue = (cls.credits || 0) * creditValueForThisBooking;
                     } else {
-                        // For credit-based members, we calculate the revenue based on their purchase history.
-                        // This logic is complex and remains encapsulated. We assume for both actual and projected
-                        // that the credit cost is the same.
                         const purchasePool = firebaseObjectToArray(member.purchaseHistory)
                             .filter(p => p.status !== 'deleted')
                             .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -4910,7 +4908,6 @@ ${_('whatsapp_closing')}
                     totalGrossRevenue += revenue;
                     revenueByClsId.set(cls.id, (revenueByClsId.get(cls.id) || 0) + revenue);
                 }
-                // --- END OF CHANGE ---
             }
         }
         return { grossRevenue: totalGrossRevenue, revenueByClsId };
@@ -5625,9 +5622,7 @@ ${_('whatsapp_closing')}
                 const sportType = appState.sportTypes.find(st => st.id === cls.sportTypeId);
                 let earnings = 0;
                 let calculation = _('label_na');
-                // --- START OF FIX: Use ATTENDEE count for export calculation ---
                 const attendeesCount = cls.attendedBy ? Object.keys(cls.attendedBy).length : 0;
-                // --- END OF FIX ---
                 const clsGrossRevenue = revenueByClsId.get(cls.id) || 0;
                 
                 if (cls.payoutDetails && typeof cls.payoutDetails.salaryValue !== 'undefined') {
@@ -5639,12 +5634,15 @@ ${_('whatsapp_closing')}
                         earnings = clsGrossRevenue * (salaryValue / 100);
                         calculation = _('salary_calculation_percentage').replace('{revenue}', formatCurrency(clsGrossRevenue)).replace('{percentage}', salaryValue);
                     } else if (salaryType === 'perHeadcount') {
-                        earnings = attendeesCount * salaryValue;
-                        const attendeesUnit = _(attendeesCount === 1 ? 'salary_unit_attendee' : 'salary_unit_attendees');
+                        // --- START OF CHANGE: Use booked count instead of attended count ---
+                        const headcount = cls.bookedBy ? Object.keys(cls.bookedBy).length : 0;
+                        earnings = headcount * salaryValue;
+                        const headcountUnit = _(headcount === 1 ? 'salary_unit_attendee' : 'salary_unit_attendees');
                         calculation = _('salary_calculation_per_head')
-                            .replace('{count}', attendeesCount)
-                            .replace('{unit}', attendeesUnit)
+                            .replace('{count}', headcount)
+                            .replace('{unit}', headcountUnit)
                             .replace('{amount}', formatCurrency(salaryValue));
+                        // --- END OF CHANGE ---
                     }
                 }
                 return { ...cls, sportTypeName: getSportTypeName(sportType), earnings, calculation, attendeesCount };
@@ -5705,7 +5703,6 @@ ${_('whatsapp_closing')}
             });
         }
         
-        // This call now uses the corrected, attendance-based logic
         const { revenueByClsId } = calculateRevenueForBookings(allMemberBookings, 'actual');
         
         let totalEarnings = 0;
@@ -5723,15 +5720,17 @@ ${_('whatsapp_closing')}
                     calculation = _('salary_calculation_fixed').replace('{amount}', formatCurrency(salaryValue));
                 } else if (salaryType === 'percentage') {
                     earnings = clsGrossRevenue * (salaryValue / 100);
-                    // Use the new template key for the percentage calculation string
                     calculation = _('template_salary_percentage').replace('{revenue}', formatCurrency(clsGrossRevenue)).replace('{percentage}', salaryValue);
                 } else if (salaryType === 'perHeadcount') {
-                    earnings = attendeesCount * salaryValue;
-                    const attendeesUnit = _(attendeesCount === 1 ? 'salary_unit_attendee' : 'salary_unit_attendees');
+                    // --- START OF CHANGE: Use booked count instead of attended count ---
+                    const headcount = cls.bookedBy ? Object.keys(cls.bookedBy).length : 0;
+                    earnings = headcount * salaryValue;
+                    const headcountUnit = _(headcount === 1 ? 'salary_unit_attendee' : 'salary_unit_attendees');
                     calculation = _('salary_calculation_per_head')
-                        .replace('{count}', attendeesCount)
-                        .replace('{unit}', attendeesUnit)
+                        .replace('{count}', headcount)
+                        .replace('{unit}', headcountUnit)
                         .replace('{amount}', formatCurrency(salaryValue));
+                    // --- END OF CHANGE ---
                 }
             }
 
@@ -5841,13 +5840,19 @@ ${_('whatsapp_closing')}
             [_('filter_all_time')]: Infinity 
         };
         periodSelect.innerHTML = Object.keys(periods).map(p => `<option value="${periods[p]}">${p}</option>`).join('');
-        periodSelect.value = -7;
+        
+        // --- CHANGE START: Use the persistent state to set the dropdown value ---
+        periodSelect.value = appState.selectedFilters.statsPeriod;
+        // --- CHANGE END ---
         
         let currentStatsForExport = {};
 
         const renderFilteredStats = async () => {
             statsContainer.innerHTML = `<p class="text-center text-slate-500 p-8">${_('status_loading')}...</p>`;
-            const days = parseFloat(periodSelect.value);
+            
+            // --- CHANGE START: Read the value from the persistent state ---
+            const days = parseFloat(appState.selectedFilters.statsPeriod);
+            // --- CHANGE END ---
             
             const isFutureView = days < 0;
             const primaryStatKey = isFutureView ? 'bookedBy' : 'attendedBy';
@@ -5921,7 +5926,6 @@ ${_('whatsapp_closing')}
                     ${createRankingCard(_('header_low_times'), lowTimes, rankingValueLabel, '#f97316')}
                 </div>`;
             
-            // --- START OF CHANGE 1: Store summary data with stable, non-translated keys ---
             currentStatsForExport = {
                 summary: [
                     { key: 'timePeriod', value: periodSelect.options[periodSelect.selectedIndex].text },
@@ -5936,7 +5940,6 @@ ${_('whatsapp_closing')}
              if (!isFutureView) {
                 currentStatsForExport.summary.push({ key: 'attendanceRate', value: attendanceRate.toFixed(1) });
             }
-            // --- END OF CHANGE 1 ---
             
             await calculateAndRenderRevenueStats(filteredClasses, isFutureView);
         };
@@ -5966,32 +5969,46 @@ ${_('whatsapp_closing')}
                 });
             }
             
-            const revenueMode = isFutureView ? 'projected' : 'actual';
-            const { revenueByClsId } = calculateRevenueForBookings(allRelevantBookings, revenueMode);
+            const { revenueByClsId: projectedRevenueByClsId } = calculateRevenueForBookings(allRelevantBookings, 'projected');
+
+            const revenueForSummaryCards = isFutureView ? 
+                { grossRevenue: Array.from(projectedRevenueByClsId.values()).reduce((a, b) => a + b, 0) } :
+                calculateRevenueForBookings(allRelevantBookings, 'actual');
             
-            let grossRevenue = 0, totalTutorPayout = 0;
-            const participantCountKey = isFutureView ? 'bookedBy' : 'attendedBy';
+            const grossRevenueForDisplay = revenueForSummaryCards.grossRevenue;
+
+            let totalTutorPayout = 0;
+            const netRevenueByClsId = new Map();
 
             filteredClasses.forEach(cls => {
-                const clsRevenue = revenueByClsId.get(cls.id) || 0;
-                grossRevenue += clsRevenue;
+                const clsGrossRevenueForPayout = projectedRevenueByClsId.get(cls.id) || 0;
                 
+                let clsPayout = 0;
                 if (cls.payoutDetails && typeof cls.payoutDetails.salaryValue !== 'undefined') {
                     const { salaryType, salaryValue } = cls.payoutDetails;
-                    const participantCount = cls[participantCountKey] ? Object.keys(cls[participantCountKey]).length : 0;
-
-                    if (salaryType === 'perCls') totalTutorPayout += salaryValue;
-                    else if (salaryType === 'perHeadcount') totalTutorPayout += participantCount * salaryValue;
-                    else if (salaryType === 'percentage') totalTutorPayout += clsRevenue * (salaryValue / 100);
+                    
+                    if (salaryType === 'perCls') {
+                        clsPayout = salaryValue;
+                    } else if (salaryType === 'perHeadcount') {
+                        const headcount = cls.bookedBy ? Object.keys(cls.bookedBy).length : 0;
+                        clsPayout = headcount * salaryValue;
+                    } else if (salaryType === 'percentage') {
+                        clsPayout = clsGrossRevenueForPayout * (salaryValue / 100);
+                    }
                 }
+                totalTutorPayout += clsPayout;
+
+                const clsNetRevenue = clsGrossRevenueForPayout - clsPayout;
+                netRevenueByClsId.set(cls.id, clsNetRevenue);
             });
 
-            const totalNetRevenue = grossRevenue - totalTutorPayout;
-            const topClassesByRevenue = rankByGroupedRevenue(filteredClasses, revenueByClsId, appState.sportTypes, 'sportTypeId');
-            const topTutorsByRevenue = rankByGroupedRevenue(filteredClasses, revenueByClsId, appState.tutors, 'tutorId');
+            const totalNetRevenue = grossRevenueForDisplay - totalTutorPayout;
+            
+            const topClassesByRevenue = rankByGroupedRevenue(filteredClasses, netRevenueByClsId, appState.sportTypes, 'sportTypeId');
+            const topTutorsByRevenue = rankByGroupedRevenue(filteredClasses, netRevenueByClsId, appState.tutors, 'tutorId');
 
             const grossRevenueCard = document.getElementById('grossRevenueCard');
-            if (grossRevenueCard) grossRevenueCard.innerHTML = `<p class="text-sm text-slate-500">${_('label_gross_revenue')}</p><p class="text-2xl font-bold text-slate-800">${formatCurrency(grossRevenue)}</p>`;
+            if (grossRevenueCard) grossRevenueCard.innerHTML = `<p class="text-sm text-slate-500">${_('label_gross_revenue')}</p><p class="text-2xl font-bold text-slate-800">${formatCurrency(grossRevenueForDisplay)}</p>`;
 
             const netRevenueCard = document.getElementById('netRevenueCard');
             if (netRevenueCard) {
@@ -6005,12 +6022,10 @@ ${_('whatsapp_closing')}
             const topTutorsByRevenueCard = document.getElementById('topTutorsByRevenueCard');
             if(topTutorsByRevenueCard) topTutorsByRevenueCard.innerHTML = createRankingCard(_('header_top_tutors_revenue'), topTutorsByRevenue, _('label_revenue'), '#22c55e');
 
-            // --- START OF CHANGE 2: Push to summary with stable keys ---
             currentStatsForExport.summary.push(
-                { key: 'grossRevenue', value: formatCurrency(grossRevenue) },
+                { key: 'grossRevenue', value: formatCurrency(grossRevenueForDisplay) },
                 { key: 'netRevenue', value: formatCurrency(totalNetRevenue) }
             );
-            // --- END OF CHANGE 2 ---
             currentStatsForExport.topClassesByRevenue = topClassesByRevenue.map(item => ({ Ranking: 'Class by Revenue', name: item.name, value: item.value }));
             currentStatsForExport.topTutorsByRevenue = topTutorsByRevenue.map(item => ({ Ranking: 'Tutor by Revenue', name: item.name, value: item.value }));
         };
@@ -6028,7 +6043,6 @@ ${_('whatsapp_closing')}
                 return;
             }
 
-            // --- START OF CHANGE 3: Read from summary using stable keys ---
             const isFutureView = parseFloat(periodSelect.value) < 0;
             const classPopularityTitle = isFutureView ? _('export_cat_class_by_enrollment') : _('export_cat_class_by_attendance');
             const tutorPopularityTitle = isFutureView ? _('export_cat_tutor_by_enrollment') : _('export_cat_tutor_by_attendance');
@@ -6089,7 +6103,6 @@ ${_('whatsapp_closing')}
                 ...createTranslatedSection(_('export_cat_peak_times'), peakTimes),
                 ...createTranslatedSection(_('export_cat_low_times'), lowTimes),
             ];
-            // --- END OF CHANGE 3 ---
 
             const periodText = periodSelect.options[periodSelect.selectedIndex].text.replace(/ /g, '-');
             const fileName = `statistics-report_${periodText}`;
@@ -6100,7 +6113,13 @@ ${_('whatsapp_closing')}
             exportBtn.innerHTML = exportBtnDefaultHTML;
         };
 
-        periodSelect.onchange = renderFilteredStats;
+        // --- CHANGE START: Save the new selection to the state ---
+        periodSelect.onchange = () => {
+            appState.selectedFilters.statsPeriod = periodSelect.value;
+            renderFilteredStats();
+        };
+        // --- CHANGE END ---
+
         renderFilteredStats();
     }
 
@@ -7002,7 +7021,7 @@ ${_('whatsapp_closing')}
 
                     // --- START: NEW LANGUAGE LOGIC ---
                     // Load language from DB, fallback to browser storage, then to default
-                    const userLang = userData.language || localStorage.getItem('studioPulseLanguage') || 'en';
+                    const userLang = userData.language || localStorage.getItem('fightingApeLanguage') || 'en';
                     setLanguage(userLang, false); // Set language from DB, don't re-save immediately
                     // --- END: NEW LANGUAGE LOGIC ---
 
@@ -7206,7 +7225,7 @@ ${_('whatsapp_closing')}
         auth.onAuthStateChanged(handleAuthStateChange);
 
         // --- START: NEW INITIAL LANGUAGE SET ---
-        const savedLang = localStorage.getItem('studioPulseLanguage') || 'en';
+        const savedLang = localStorage.getItem('fightingApeLanguage') || 'en';
         setLanguage(savedLang, false); // Don't save to DB on initial load
         // --- END: NEW INITIAL LANGUAGE SET ---
     };
