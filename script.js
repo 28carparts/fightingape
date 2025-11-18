@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const setLanguage = (lang, saveToDb = true) => {
         if (!LANG_PACK[lang]) lang = 'en'; // Fallback to English
         appState.currentLanguage = lang;
-        localStorage.setItem('studioPulseLanguage', lang);
+        localStorage.setItem('fightingApeLanguage', lang);
         updateUIText();
         // --- CHANGE START: Add a guard to prevent unnecessary UI updates ---
         // Only update the password strength UI if the registration form is visible
@@ -3919,7 +3919,7 @@ ${_('whatsapp_closing')}
         updates[`/users/${memberId}/originalName`] = member.name;
 
         // Archive Email
-        updates[`/users/${memberId}/email`] = `deleted.${memberId}@studiopulse.app`;
+        updates[`/users/${memberId}/email`] = `deleted.${memberId}@fightingApe.app`;
         updates[`/users/${memberId}/originalEmail`] = member.email;
 
         // Archive Phone
@@ -6990,7 +6990,7 @@ ${_('whatsapp_closing')}
 
                     // --- START: NEW LANGUAGE LOGIC ---
                     // Load language from DB, fallback to browser storage, then to default
-                    const userLang = userData.language || localStorage.getItem('studioPulseLanguage') || 'en';
+                    const userLang = userData.language || localStorage.getItem('fightingApeLanguage') || 'en';
                     setLanguage(userLang, false); // Set language from DB, don't re-save immediately
                     // --- END: NEW LANGUAGE LOGIC ---
 
@@ -7194,7 +7194,7 @@ ${_('whatsapp_closing')}
         auth.onAuthStateChanged(handleAuthStateChange);
 
         // --- START: NEW INITIAL LANGUAGE SET ---
-        const savedLang = localStorage.getItem('studioPulseLanguage') || 'en';
+        const savedLang = localStorage.getItem('fightingApeLanguage') || 'en';
         setLanguage(savedLang, false); // Don't save to DB on initial load
         // --- END: NEW INITIAL LANGUAGE SET ---
     };
