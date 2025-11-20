@@ -27,11 +27,11 @@
     <div id="authPage" class="w-full max-w-sm mx-auto">
         <div class="text-center">
             <h1 data-lang-key="auth_welcome_to" class="text-4xl font-extrabold text-slate-800 mb-2">Welcome to</h1>
-            <a href="#" class="flex-shrink-0 hover:opacity-90 transition-opacity">
-                <!-- h-12 (48px height) on mobile, h-16 (64px height) on desktop. 
-                     w-auto ensures the width scales naturally to approx 154px and 205px respectively. -->
-                <img src="logo.png" alt="Fighting Ape Muay Thai" class="h-12 lg:h-16 w-auto object-contain">
-            </a>
+            <div class="mb-8 flex justify-center">
+                <!-- h-20 (80px height) scales the width to exactly 256px.
+                     This fits perfectly centered inside the login card. -->
+                <img src="logo.png" alt="Fighting Ape Muay Thai" class="h-20 w-auto object-contain">
+            </div>
         </div>
         
         <!-- Login Form -->
@@ -130,11 +130,11 @@
 
         <header class="w-full mb-8">
             <div class="flex flex-wrap justify-between items-center gap-4">
-                <div class="mb-8 flex justify-center">
-                    <!-- h-20 (80px height) scales the width to exactly 256px.
-                         This fits perfectly centered inside the login card. -->
-                    <img src="logo.png" alt="Fighting Ape Muay Thai" class="h-20 w-auto object-contain">
-                </div>
+                <a href="#" class="flex-shrink-0 hover:opacity-90 transition-opacity">
+                    <!-- h-12 (48px height) on mobile, h-16 (64px height) on desktop. 
+                         w-auto ensures the width scales naturally to approx 154px and 205px respectively. -->
+                    <img src="logo.png" alt="Fighting Ape Muay Thai" class="h-12 lg:h-16 w-auto object-contain">
+                </a>
                 <nav id="mainNav" class="bg-white/60 backdrop-blur-sm rounded-full border border-slate-200 shadow-sm">
                     <!-- Mobile/Tablet: Swipeable Carousel (Visible below 1024px) -->
                     <div id="nav-carousel-mobile" class="lg:hidden">
@@ -210,6 +210,7 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
