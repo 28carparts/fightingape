@@ -1,5 +1,5 @@
 {
-  "name": "Fighting Ape Name",
+  "name": "Fighting Ape",
   "short_name": "Fighting Ape",
   "icons": [
     {
@@ -16,4 +16,5 @@
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "display": "standalone"
+
 }
