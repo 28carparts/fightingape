@@ -358,7 +358,7 @@ const LANG_PACK = {
         'btn_copy_whatsapp': 'Copy WhatsApp Msg',
         'tooltip_copy_number': 'Click to copy number',
         'whatsapp_greeting': '👋 Hi *{name}*,',
-        'whatsapp_body_1': 'This is a notification from Fighting Ape. Unfortunately, we have to cancel the following class:',
+        'whatsapp_body_1': 'This is a notification from StudioPulse. Unfortunately, we have to cancel the following class:',
         'whatsapp_class': 'Class',
         'whatsapp_date': 'Date',
         'whatsapp_time': 'Time',
@@ -445,11 +445,19 @@ const LANG_PACK = {
         'title_notify_members_update': 'Notify Members of Update',
         'notify_members_update_instructions': 'This class has {count} booking(s). Please copy the message for each member to notify them of the change before proceeding.',
         'btn_confirm_update': 'Confirm Update',
-        'whatsapp_body_update': 'This is a friendly update from Fighting Ape regarding your booked class:',
+        'whatsapp_body_update': 'This is a friendly update from StudioPulse regarding your booked class:',
         'whatsapp_changes_header': 'The following details have been changed:',
         'whatsapp_cancellation_option': 'If you can no longer make it, you can cancel your booking via the app.🙏',
         'error_class_not_for_monthly': 'This class is not available for booking with a monthly plan.',
         'btn_jump_to_today': 'Jump to Today',
+
+        // --- Credit Change Modal ---
+        'title_credit_change_detected': 'Credit Change Detected',
+        'desc_credit_change': 'You are changing the class credit from <strong>{old}</strong> to <strong>{new}</strong>. The following members have already paid the old credit.',
+        'instruction_credit_change_manual': 'To adjust their balance, you must <strong>manually cancel and rebook</strong> these members after saving.',
+        'label_paid': 'Paid',
+        'label_diff': 'Diff',
+        'label_new_price': 'New Credit',
 
         // --- QR Code ---
         'nav_check_in': 'Check-In',
@@ -891,7 +899,7 @@ const LANG_PACK = {
         'btn_copy_whatsapp': '複製 WhatsApp 訊息',
         'tooltip_copy_number': '點擊以複製號碼',
         'whatsapp_greeting': '👋 哈囉 *{name}*,',
-        'whatsapp_body_1': '這是來自 Fighting Ape 的通知。很抱歉，我們必須取消以下課程：',
+        'whatsapp_body_1': '這是來自 StudioPulse 的通知。很抱歉，我們必須取消以下課程：',
         'whatsapp_class': '課程',
         'whatsapp_date': '日期',
         'whatsapp_time': '時間',
@@ -978,11 +986,19 @@ const LANG_PACK = {
         'title_notify_members_update': '通知會員課程更新',
         'notify_members_update_instructions': '此課程有 {count} 筆預約。在繼續之前，請複製訊息並通知每位會員有關變更的事宜。',
         'btn_confirm_update': '確認更新',
-        'whatsapp_body_update': '這是來自 Fighting Ape 關於您已預約課程的更新通知：',
+        'whatsapp_body_update': '這是來自 StudioPulse 關於您已預約課程的更新通知：',
         'whatsapp_changes_header': '以下是課程的變更詳情：',
         'whatsapp_cancellation_option': '如果您無法參加更新後的課程，可以隨時透過App取消預約。🙏',
         'error_class_not_for_monthly': '此課程不適用於月費方案預約。',
         'btn_jump_to_today': '跳至今天',
+
+        // --- Credit Change Modal ---
+        'title_credit_change_detected': '偵測到點數變更',
+        'desc_credit_change': '您正將課程點數從 <strong>{old}</strong> 改為 <strong>{new}</strong>。以下會員已支付舊點數。',
+        'instruction_credit_change_manual': '若要調整其差額，您必須在儲存後<strong>手動取消並重新預約</strong>這些會員。',
+        'label_paid': '已付',
+        'label_diff': '差額',
+        'label_new_price': '新點數',
 
         // --- QR Code ---
         'nav_check_in': '簽到',
