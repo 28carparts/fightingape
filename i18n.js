@@ -265,6 +265,9 @@ const LANG_PACK = {
         'placeholder_cancellation_cutoff': '0 = until start',
         'tooltip_cancellation_closed': 'Cancellation is closed within {hours} hours of start time.',
         'label_default_est_attendance': 'Est. Monthly Attendance',
+        'header_announcements': 'Announcements',
+        'desc_announcements': 'Post important updates, holiday notices, or news. This will appear at the top of the dashboard for all users.',
+        'btn_manage_announcement': 'Manage Announcement',
 
         // --- Members Page ---
         'title_manage_members': 'Manage Members',
@@ -307,6 +310,16 @@ const LANG_PACK = {
         'table_header_attendees': 'Attendees',
         'label_no_months_available': 'No Months Available',
         'label_unknown': 'Unknown',
+
+        // --- Income Page ---
+        'nav_income': 'Income',
+        'title_income_overview': 'Daily Income Overview',
+        'header_daily_breakdown': 'Daily Breakdown',
+        'label_total_income': 'Total Income',
+        'table_header_classes': 'Classes',
+        'table_header_income': 'Income',
+        'info_no_income_data': 'No income data found for this period.',
+        'btn_export_income': 'Export Income',
 
         // --- Salary Page ---
         'title_salary_overview': 'Tutor Salary Overview',
@@ -806,6 +819,9 @@ const LANG_PACK = {
         'placeholder_cancellation_cutoff': '0 = 直到開始前',
         'tooltip_cancellation_closed': '開課前 {hours} 小時內無法取消。',
         'label_default_est_attendance': '每月預估出席次數',
+        'header_announcements': '公告設定',
+        'desc_announcements': '發布重要更新、假期通知或新聞。這將顯示在所有用戶的儀表板頂部。',
+        'btn_manage_announcement': '管理公告',
 
         // --- Members Page ---
         'title_manage_members': '會員管理',
@@ -848,6 +864,16 @@ const LANG_PACK = {
         'table_header_attendees': '出席人數',
         'label_no_months_available': '沒有可用的月份',
         'label_unknown': '未知',
+
+        // --- Income Page ---
+        'nav_income': '收入',
+        'title_income_overview': '每日收入總覽',
+        'header_daily_breakdown': '每日明細',
+        'label_total_income': '總收入',
+        'table_header_classes': '課程數量',
+        'table_header_income': '收入',
+        'info_no_income_data': '此期間無收入資料。',
+        'btn_export_income': '匯出收入',
 
         // --- Salary Page ---
         'title_salary_overview': '導師薪資總覽',
