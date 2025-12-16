@@ -1,7 +1,7 @@
 const LANG_PACK = {
     'en': {
         // --- General & Common ---
-        'footer_powered_by': 'Powered by',
+        'footer_designed_powered_by': 'Designed & Powered by',
         'btn_add': 'Add',
         'btn_edit': 'Edit',
         'btn_delete': 'Delete',
@@ -808,7 +808,7 @@ const LANG_PACK = {
     },
     'zh-TW': {
         // --- General & Common ---
-        'footer_powered_by': 'Powered by',
+        'footer_designed_powered_by': 'Designed & Powered by',
         'btn_add': '新增',
         'btn_edit': '編輯',
         'btn_delete': '刪除',
